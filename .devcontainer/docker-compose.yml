@@ -1,0 +1,28 @@
+version: '3.7'
+
+services:
+  companion_imu:
+    image: docker.mohntechnology.no/companion:OF
+    container_name: OF_Models
+    privileged: true
+    network_mode: host
+    runtime: nvidia
+    environment:
+      - DISPLAY=$DISPLAY
+      - QT_X11_NO_MITSHM=1
+      - GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/input:/dev/input
+      - /dev:/dev
+      - ../:/home/docker/ROS2_liteflownet
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: 1
+    # Overrides default command so things don't shut down after the process ends.
+    command: /bin/sh -c "while sleep 1000; do :; done"
+
