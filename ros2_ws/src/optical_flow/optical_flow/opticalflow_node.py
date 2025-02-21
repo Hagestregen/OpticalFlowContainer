@@ -7,6 +7,8 @@ import torch
 import numpy as np
 import math
 from .liteflownet import Network  # Import the LiteFlowNet model
+from std_msgs.msg import Float64
+import time
 
 class OpticalFlowNode(Node):
     def __init__(self):
@@ -17,7 +19,7 @@ class OpticalFlowNode(Node):
             self.image_callback,
             10
         )
-        self.flow_pub = self.create_publisher(Image, 'optical_flow', 10)
+        self.flow_pub = self.create_publisher(Float64, 'optical_flow', 10)
         self.prev_tensor = None
         self.prev_time = None
         self.net = Network().cuda().eval()
@@ -29,8 +31,10 @@ class OpticalFlowNode(Node):
         self.mean_one = torch.tensor([0.411618, 0.434631, 0.454253]).view(3, 1, 1)
         self.mean_two = torch.tensor([0.410782, 0.433645, 0.452793]).view(3, 1, 1)
         self.frame_rate = 28.0  # Hz, for reference
-        self.pixel_to_meter = 0.002428  # Adjusted meters per pixel
+        self.pixel_to_meter = 0.000566  # Adjusted meters per pixel
         self.get_logger().info('Initialized LiteFlowNet model')
+        
+    
 
     def image_callback(self, msg):
         try:
@@ -90,7 +94,7 @@ class OpticalFlowNode(Node):
             
             flow_np = tenFlow[0].cpu().numpy()  # [2, H, W]
             u_avg = np.mean(flow_np[0]) / dt  # pixels/second
-            vx_m_per_s = u_avg * self.pixel_to_meter  # m/s
+            vx_m_per_s = float(u_avg * self.pixel_to_meter)  # m/s
             
             flow_msg = Image()
             flow_msg.header = msg.header
@@ -100,7 +104,12 @@ class OpticalFlowNode(Node):
             flow_msg.step = 4
             flow_msg.data = np.array([vx_m_per_s], dtype=np.float32).tobytes()
             
-            self.flow_pub.publish(flow_msg)
+            
+            velocity_msg = Float64()
+            velocity_msg.data = float(vx_m_per_s)
+
+            
+            self.flow_pub.publish(velocity_msg)
             self.get_logger().info(f'Published camera velocity: vx={vx_m_per_s:.6f} m/s')
             
             self.prev_tensor = current_tensor
