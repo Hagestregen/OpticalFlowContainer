@@ -5,6 +5,6 @@ ros2_ws/log
 
 
 ros2_ws/src/optical_flow/optical_flow/liteflownet
-ros2_ws/src/nueflow/nueflow/NeuFlow_v2
-ros2_ws/src/nueflow/nueflow/NeuFlow_v2
-/home/docker/ROS2_liteflownet/ros2_ws/src/nueflow/nueflow/NeuFlow_v2
+ros2_ws/src/nueflow/nueflow/NeuFlow_v2-master
+ros2_ws/src/nueflow/nueflow/NeuFlow_v2_master
+
