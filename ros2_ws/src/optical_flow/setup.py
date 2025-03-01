@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'opticalflow_node = optical_flow.opticalflow_node:main'
+            'opticalflow_node = optical_flow.opticalflow_node:main',
+            'lfn_node = optical_flow.lfn_node:main',
         ],
     },
 )

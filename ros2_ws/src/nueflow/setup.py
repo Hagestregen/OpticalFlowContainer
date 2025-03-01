@@ -1,5 +1,6 @@
 from setuptools import find_packages, setup
 import os
+from glob import glob
 
 package_name = 'nueflow'
 
@@ -10,14 +11,22 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        # Include the neuflow_mixed.pth file in the installed package
-        (os.path.join('share', package_name, 'NeuFlow_v2_master'), ['nueflow/NeuFlow_v2_master/neuflow_mixed.pth']),
+        # Include non-Python data files (e.g., model checkpoints)
+        (os.path.join('share', package_name, 'NeuFlow_v2_master'), [
+            'nueflow/NeuFlow_v2_master/neuflow_mixed.pth',
+            'nueflow/NeuFlow_v2_master/neuflow_sintel.pth',
+            'nueflow/NeuFlow_v2_master/neuflow_things.pth',
+        ]),
     ],
+    package_data={
+        # Include all Python files in NeuFlow_v2_master/NeuFlow/data_utils
+        package_name: ['NeuFlow_v2_master/data_utils/*.py'],
+    },
     install_requires=[
         'setuptools',
-        'torch>=1.9.0',  # Specify a minimum version compatible with your needs
-        'numpy<2.0.0',   # Ensure compatibility with PyTorch as per earlier fix
-        'opencv-python',  # For cv2
+        'torch>=1.9.0',
+        'numpy<2.0.0',
+        'opencv-python',
     ],
     zip_safe=True,
     maintainer='docker',

@@ -8,3 +8,5 @@ ros2_ws/src/optical_flow/optical_flow/liteflownet
 ros2_ws/src/nueflow/nueflow/NeuFlow_v2-master
 ros2_ws/src/nueflow/nueflow/NeuFlow_v2_master
 
+ros2_ws/my_results
+ros2_ws/my_results_nohalf

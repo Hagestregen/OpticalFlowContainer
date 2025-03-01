@@ -16,6 +16,9 @@ services:
       - /dev/input:/dev/input
       - /dev:/dev
       - ../:/home/docker/ROS2_liteflownet
+    devices:
+      - "/dev/video0:/dev/video0"
+      - "/dev/bus/usb:/dev/bus/usb" 
     deploy:
       resources:
         reservations:
