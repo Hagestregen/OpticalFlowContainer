@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'optical_flow'
+package_name = 'liteflownet3'
 
 setup(
     name=package_name,
@@ -20,8 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'opticalflow_node = optical_flow.opticalflow_node:main',
-            'lfn_node = optical_flow.lfn_node:main',
+            'lfn3_node = liteflownet3.lfn3_node:main'
         ],
     },
 )

@@ -10,3 +10,14 @@ ros2_ws/src/nueflow/nueflow/NeuFlow_v2_master
 
 ros2_ws/my_results
 ros2_ws/my_results_nohalf
+ros2_ws/src/liteflownet3/liteflownet3/pytorch_liteflownet3
+
+__pycache__
+
+build
+
+ros2_ws/cuda-keyring_1.0-1_all.deb
+
+ros2_ws/src/liteflownet3/liteflownet3/correlation_package/correlation_cuda.egg-info
+
+**/*.jpg
