@@ -33,7 +33,8 @@ class OpticalFlowDirectNode(Node):
         self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
         
         # Publisher for velocity
-        self.flow_pub = self.create_publisher(Vector3Stamped, '/optical_flow/LFN_velocity', 10)
+        self.flow_pub = self.create_publisher(Vector3Stamped, '/optical_flow/LFN3_velocity', 10)
+        self.smooth_flow_pub = self.create_publisher(Vector3Stamped, '/optical_flow/LFN3_smooth_velocity', 10)
         
         # Initialize LiteFlowNet3 model
         self.get_logger().info('Initializing LiteFlowNet3 model...')
@@ -134,8 +135,13 @@ class OpticalFlowDirectNode(Node):
                         tenFlow[:, 0, :, :] *= float(intWidth) / float(intPreprocessedWidth)
                         tenFlow[:, 1, :, :] *= float(intHeight) / float(intPreprocessedHeight)
                     
+                    # Crop to upper two-thirds
+                    cropped_height = int(intHeight * 2 / 3)
+                    tenFlow_cropped = tenFlow[:, :, :cropped_height, :]
+                                        
                     # Compute velocity
-                    flow_np = tenFlow[0].cpu().numpy()  # [2, H, W]
+                    # flow_np = tenFlow[0].cpu().numpy()  # [2, H, W]
+                    flow_np = tenFlow_cropped[0].cpu().numpy()
                     u_avg = np.mean(flow_np[0]) / dt  # Horizontal flow (pixels/s)
                     vx_m_per_s = float(u_avg * self.pixel_to_meter)  # Meters/s
                     
@@ -147,11 +153,20 @@ class OpticalFlowDirectNode(Node):
                     vel_msg = Vector3Stamped()
                     vel_msg.header.stamp = self.get_clock().now().to_msg()
                     vel_msg.header.frame_id = "camera_link"
-                    vel_msg.vector.x = smoothed_vx
+                    vel_msg.vector.x = vx_m_per_s
                     vel_msg.vector.y = 0.0  # Add vertical flow if needed
                     vel_msg.vector.z = 0.0
                     
+                    # Publish velocity
+                    vel_smooth_msg = Vector3Stamped()
+                    vel_smooth_msg.header.stamp = self.get_clock().now().to_msg()
+                    vel_smooth_msg.header.frame_id = "camera_link"
+                    vel_smooth_msg.vector.x = smoothed_vx
+                    vel_smooth_msg.vector.y = 0.0  # Add vertical flow if needed
+                    vel_smooth_msg.vector.z = 0.0
+                    
                     self.flow_pub.publish(vel_msg)
+                    self.smooth_flow_pub.publish(vel_smooth_msg)
                     # self.get_logger().info(f'Published velocity: {smoothed_vx:.6f} m/s')
                     
                     # Update previous tensor
