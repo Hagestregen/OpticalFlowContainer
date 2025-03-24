@@ -21,7 +21,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'lfn3_node = liteflownet3.lfn3_node:main'
+            'lfn3_node = liteflownet3.lfn3_node:main',
+            'depth_calculation_node = liteflownet3.depth_calculation_node:main',
         ],
     },
 )

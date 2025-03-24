@@ -3,6 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Vector3Stamped
+from std_msgs.msg import Float32
 import pyrealsense2 as rs
 import numpy as np
 import cv2
@@ -30,7 +31,9 @@ class OpticalFlowDirectNode(Node):
         self.width = self.get_parameter('width').value
         self.height = self.get_parameter('height').value
         self.fps = self.get_parameter('fps').value
-        self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
+        # self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
+        
+        
         
         # Publisher for velocity
         self.flow_pub = self.create_publisher(Vector3Stamped, '/optical_flow/LFN3_velocity', 10)
@@ -58,22 +61,49 @@ class OpticalFlowDirectNode(Node):
         self.prev_time = None
         self.velocity_buffer = deque(maxlen=5)
         
+        # Subscription to median depth
+        self.median_depth = None
+        self.sub_depth = self.create_subscription(
+            Float32,
+            '/camera/depth/median_distance',
+            self.depth_callback,
+            10
+        )
+        
+        # Initialize the RealSense pipeline
+        self.pipeline = rs.pipeline()
+        
         # Start RealSense pipeline in a thread
         self.pipeline_thread = threading.Thread(target=self.run_pipeline_loop)
         self.pipeline_thread.daemon = True
         self.pipeline_thread.start()
+        
+        self.focal_length_x = None
+        
+    def depth_callback(self, msg):
+        self.median_depth = msg.data
+        if self.focal_length_x is not None:
+            self.pixel_to_meter = self.median_depth / self.focal_length_x
+            self.get_logger().info(f"Updated pixel_to_meter: {self.pixel_to_meter:.6f}")
     
     def run_pipeline_loop(self):
         # Configure RealSense pipeline
-        pipeline = rs.pipeline()
         config = rs.config()
         config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, self.fps)
-        pipeline.start(config)
+        
+        self.pipeline.start(config)
         self.get_logger().info(f'RealSense pipeline started with {self.width}x{self.height} at {self.fps} FPS.')
+        
+        # Get focal length from color stream
+        profile = self.pipeline.get_active_profile()
+        color_stream = profile.get_stream(rs.stream.color)
+        intrinsics = color_stream.as_video_stream_profile().get_intrinsics()
+        self.focal_length_x = intrinsics.fx
+        self.get_logger().info(f"Focal length: {self.focal_length_x} pixels")
         
         try:
             while rclpy.ok():
-                frames = pipeline.wait_for_frames()
+                frames = self.pipeline.wait_for_frames()
                 color_frame = frames.get_color_frame()
                 if not color_frame:
                     continue
