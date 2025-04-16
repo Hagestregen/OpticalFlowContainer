@@ -17,7 +17,7 @@ class DepthCalculationNode(Node):
         # Subscriber to depth image topic from RealSense
         self.depth_sub = self.create_subscription(
             Image,
-            '/camera/depth/image_rect_raw',
+            '/camera/camera/aligned_depth_to_color/image_raw',
             self.depth_callback,
             10
         )
@@ -53,9 +53,9 @@ class DepthCalculationNode(Node):
             depth_mode = 'ROI'
         
         if depth_mode == 'ROI':
-            # Define central ROI (100x100 pixels)
+            # Define central ROI in pixels
             h, w = depth_image.shape
-            roi = depth_image[h//2-50:h//2+50, w//2-50:w//2+50]
+            roi = depth_image[h//2-125:h//2+125, w//2-125:w//2+125]
             valid_depths = roi[roi > 0]
         else:  # depth_mode == 'entire'
             valid_depths = depth_image[depth_image > 0]
