@@ -15,7 +15,7 @@ from collections import deque
 import os
 from ament_index_python.packages import get_package_share_directory  # Add this import
 
-from .liteflownet3 import Network  # Assuming liteflownet3.py is in the same package
+from .liteflownet3 import Network
 
 class OpticalFlowDirectNode(Node):
     def __init__(self):
@@ -31,7 +31,7 @@ class OpticalFlowDirectNode(Node):
         self.width = self.get_parameter('width').value
         self.height = self.get_parameter('height').value
         self.fps = self.get_parameter('fps').value
-        # self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
+        self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
         
         
         
@@ -100,6 +100,38 @@ class OpticalFlowDirectNode(Node):
         intrinsics = color_stream.as_video_stream_profile().get_intrinsics()
         self.focal_length_x = intrinsics.fx
         self.get_logger().info(f"Focal length: {self.focal_length_x} pixels")
+        
+        # Configure camera settings: disable autoexposure, set exposure to 500, set gain to 10
+        # device = profile.get_device()
+        # sensors = device.query_sensors()
+        # for sensor in sensors:
+        #     if not sensor.is_depth_sensor():
+        #         color_sensor = sensor
+        #         break
+        # else:
+        #     self.get_logger().error("Color sensor not found")
+        #     return
+        
+        # # Disable autoexposure
+        # if color_sensor.supports(rs.option.enable_auto_exposure):
+        #     color_sensor.set_option(rs.option.enable_auto_exposure, 0)
+        #     self.get_logger().info("Autoexposure disabled")
+        # else:
+        #     self.get_logger().warn("Autoexposure option not supported")
+        
+        # # Set exposure to 500
+        # if color_sensor.supports(rs.option.exposure):
+        #     color_sensor.set_option(rs.option.exposure, 500)
+        #     self.get_logger().info("Exposure set to 500")
+        # else:
+        #     self.get_logger().warn("Exposure option not supported")
+        
+        # # Set gain to 10
+        # if color_sensor.supports(rs.option.gain):
+        #     color_sensor.set_option(rs.option.gain, 10)
+        #     self.get_logger().info("Gain set to 10")
+        # else:
+        #     self.get_logger().warn("Gain option not supported")
         
         try:
             while rclpy.ok():
@@ -170,8 +202,8 @@ class OpticalFlowDirectNode(Node):
                     tenFlow_cropped = tenFlow[:, :, :cropped_height, :]
                                         
                     # Compute velocity
-                    # flow_np = tenFlow[0].cpu().numpy()  # [2, H, W]
-                    flow_np = tenFlow_cropped[0].cpu().numpy()
+                    flow_np = tenFlow[0].cpu().numpy()  # [2, H, W]
+                    # flow_np = tenFlow_cropped[0].cpu().numpy()
                     u_avg = np.mean(flow_np[0]) / dt  # Horizontal flow (pixels/s)
                     vx_m_per_s = float(u_avg * self.pixel_to_meter)  # Meters/s
                     
@@ -196,6 +228,7 @@ class OpticalFlowDirectNode(Node):
                     vel_smooth_msg.vector.z = 0.0
                     
                     self.flow_pub.publish(vel_msg)
+                    self.get_logger().info(f"flow is: {vel_msg.vector.x}")
                     self.smooth_flow_pub.publish(vel_smooth_msg)
                     # self.get_logger().info(f'Published velocity: {smoothed_vx:.6f} m/s')
                     
@@ -208,7 +241,7 @@ class OpticalFlowDirectNode(Node):
         except Exception as e:
             self.get_logger().error(f'Error in pipeline loop: {str(e)}')
         finally:
-            pipeline.stop()
+            self.pipeline.stop()
 
 def main(args=None):
     rclpy.init(args=args)
@@ -223,3 +256,6 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+
+

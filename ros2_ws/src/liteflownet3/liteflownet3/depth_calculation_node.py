@@ -23,7 +23,7 @@ class DepthCalculationNode(Node):
         self.publisher = self.create_publisher(Float32, '/camera/depth/median_distance', 10)
         
         # Timer to publish at 1 Hz
-        self.timer = self.create_timer(1.0, self.calculate_and_publish)
+        self.timer = self.create_timer(0.1, self.calculate_and_publish)
         
     def calculate_and_publish(self):
         frames = self.pipeline.wait_for_frames()

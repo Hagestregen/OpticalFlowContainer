@@ -23,6 +23,8 @@ setup(
         'console_scripts': [
             'lfn3_node = liteflownet3.lfn3_node:main',
             'depth_calculation_node = liteflownet3.depth_calculation_node:main',
+            'optical_flow_spike_viz = liteflownet3.optical_flow_spike_viz:main',
+            'depth_subandpub_node = liteflownet3.depth_subandpub_node:main',
         ],
     },
 )
