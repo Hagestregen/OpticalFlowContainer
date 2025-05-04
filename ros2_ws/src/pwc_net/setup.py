@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'pwc_node = pwc_net.pwc_node:main'
+            'pwc_node = pwc_net.pwc_node:main',
+            'pwc_sub_node = pwc_net.pwc_sub_node:main',
         ],
     },
 )

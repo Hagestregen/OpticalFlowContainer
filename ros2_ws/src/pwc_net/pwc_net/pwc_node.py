@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rclpy
 from rclpy.node import Node
+from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Vector3Stamped
 from std_msgs.msg import Float32
 import pyrealsense2 as rs
@@ -11,6 +12,9 @@ import math
 import threading
 from collections import deque
 from ament_index_python.packages import get_package_share_directory
+import csv
+import os
+import time
 
 from .pwc_net import Network  # This module now contains both the network definition and a global estimate() method
 
@@ -26,6 +30,19 @@ class PWCNetNode(Node):
         self.height = self.get_parameter('height').value
         self.fps = self.get_parameter('fps').value
         self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
+        
+
+        
+        self.writeCsv = False
+        
+        if self.writeCsv:
+            # Prepare CSV file for inference times
+            self.csv_filename = f"pwc_direct_inference_{self.width}x{self.height}.csv"
+            # Write header if new file
+            if not os.path.isfile(self.csv_filename):
+                with open(self.csv_filename, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    writer.writerow(['timestamp', 'inference_time_s'])
 
         # Create publishers for raw and smoothed optical flow velocity
         self.flow_pub = self.create_publisher(Vector3Stamped, '/optical_flow/PWC_velocity', 10)
@@ -40,7 +57,7 @@ class PWCNetNode(Node):
         # Variables for previous frame and for smoothing velocity estimates
         self.prev_tensor = None
         self.prev_time = None
-        self.velocity_buffer = deque(maxlen=5)
+        self.velocity_buffer = deque(maxlen=3)
 
         # Subscription for depth measurements (to update pixel_to_meter dynamically)
         self.median_depth = None
@@ -69,19 +86,44 @@ class PWCNetNode(Node):
         config.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, self.fps)
         self.pipeline.start(config)
         self.get_logger().info(f"RealSense pipeline started: {self.width}x{self.height} at {self.fps} FPS.")
+        
         # Retrieve intrinsics to update focal length and conversion factor later
         profile = self.pipeline.get_active_profile()
         color_stream = profile.get_stream(rs.stream.color)
         intrinsics = color_stream.as_video_stream_profile().get_intrinsics()
         self.focal_length_x = intrinsics.fx
         self.get_logger().info(f"Focal length: {self.focal_length_x} pixels")
+        
+        frames0    = self.pipeline.wait_for_frames()
+        color_frame0 = frames0.get_color_frame()
+        rs_t0      = color_frame0.get_timestamp() / 1000.0        # device clock
+        ros_t0_msg = self.get_clock().now().to_msg()              # ROS clock
+        ros_t0     = ros_t0_msg.sec + ros_t0_msg.nanosec * 1e-9
+        self.device_to_ros_offset = ros_t0 - rs_t0      
+        
         try:
             while rclpy.ok():
-                frames = self.pipeline.wait_for_frames()
+                frames = self.pipeline.wait_for_frames()      # ROS time at roughly the same instant
+
                 color_frame = frames.get_color_frame()
                 if not color_frame:
                     continue
+                
+                rs_t = color_frame.get_timestamp() / 1000.0    # seconds on device clock
+                ros_t = rs_t + self.device_to_ros_offset  
+                ros_stamp = Time()
+                sec  = int(ros_t)
+                nsec = int((ros_t - sec) * 1e9)
+                ros_stamp.sec = sec
+                ros_stamp.nanosec = nsec
+
+                
+                # ros_stamp = self.get_clock().now().to_msg()
                 color_image = np.asanyarray(color_frame.get_data())
+                
+                if self.writeCsv:
+                    start_time = time.perf_counter()
+                
                 # Convert from BGR to RGB and normalize to [0,1]
                 color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
                 current_tensor = torch.from_numpy(color_image).permute(2, 0, 1).float() / 255.0
@@ -115,7 +157,9 @@ class PWCNetNode(Node):
 
                     # Publish raw optical flow velocity as a ROS message
                     vel_msg = Vector3Stamped()
-                    vel_msg.header.stamp = self.get_clock().now().to_msg()
+                    # vel_msg.header.stamp = ros_stamp
+                    vel_msg.header.stamp.sec       = int(ros_t)
+                    vel_msg.header.stamp.nanosec   = int((ros_t - int(ros_t)) * 1e9)
                     vel_msg.header.frame_id = "camera_link"
                     vel_msg.vector.x = vx_m_per_s
                     vel_msg.vector.y = 0.0
@@ -125,7 +169,9 @@ class PWCNetNode(Node):
 
                     # Publish smoothed optical flow velocity
                     vel_smooth_msg = Vector3Stamped()
-                    vel_smooth_msg.header.stamp = self.get_clock().now().to_msg()
+                    # vel_smooth_msg.header.stamp = ros_stamp
+                    vel_msg.header.stamp.sec       = int(ros_t)
+                    vel_msg.header.stamp.nanosec   = int((ros_t - int(ros_t)) * 1e9)
                     vel_smooth_msg.header.frame_id = "camera_link"
                     vel_smooth_msg.vector.x = smoothed_vx
                     vel_smooth_msg.vector.y = 0.0
@@ -133,6 +179,16 @@ class PWCNetNode(Node):
                     self.smooth_flow_pub.publish(vel_smooth_msg)
 
                     self.prev_tensor = current_tensor  # Update for next iteration
+                    
+                    if self.writeCsv:
+                        end_time = time.perf_counter()
+                        inference_time = end_time - start_time    
+                    
+                        # Append to CSV   
+                        timestamp = time.time()   
+                        with open(self.csv_filename, 'a', newline='') as csvfile: 
+                            csv.writer(csvfile).writerow([timestamp, inference_time]) 
+                        
                 except Exception as e:
                     self.get_logger().error(f"Error computing optical flow: {str(e)}")
         except Exception as e:

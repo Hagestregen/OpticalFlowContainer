@@ -25,6 +25,8 @@ class DepthCalculationNode(Node):
         # Timer to publish at 1 Hz
         self.timer = self.create_timer(0.1, self.calculate_and_publish)
         
+        self.get_logger().info("Depth calculation node started.")
+        
     def calculate_and_publish(self):
         frames = self.pipeline.wait_for_frames()
         depth_frame = frames.get_depth_frame()
@@ -49,7 +51,7 @@ class DepthCalculationNode(Node):
         msg = Float32()
         msg.data = float(median_depth)
         self.publisher.publish(msg)
-        self.get_logger().info(f"Published median depth: {median_depth} meters")
+        # self.get_logger().info(f"Published median depth: {median_depth} meters")
 
 def main(args=None):
     rclpy.init(args=args)

@@ -3,6 +3,7 @@ from rclpy.node import Node
 import numpy as np
 from sensor_msgs.msg import Image, Range
 
+
 class DepthCalculationNode(Node):
     def __init__(self):
         super().__init__('depth_calculation_node')
@@ -26,7 +27,7 @@ class DepthCalculationNode(Node):
         self.publisher = self.create_publisher(Range, '/camera/depth/median_distance', 10)
         
         # Timer to publish at 1 Hz (same as original)
-        self.timer = self.create_timer(1.0, self.calculate_and_publish)
+        self.timer = self.create_timer(0.1, self.calculate_and_publish)
         
         # Store latest depth image
         self.latest_depth_image = None
@@ -66,17 +67,25 @@ class DepthCalculationNode(Node):
         median_depth = np.median(valid_depths) * self.depth_scale
         
         # Create Range message with timestamp and distance
-        range_msg = Range()
-        range_msg.header.stamp = self.latest_depth_image.header.stamp  # Use depth image timestamp
-        range_msg.header.frame_id = self.latest_depth_image.header.frame_id  # Use depth image frame
-        range_msg.radiation_type = Range.INFRARED  # Suitable for depth camera
-        range_msg.field_of_view = 0.1  # Approximate for ROI or entire image
-        range_msg.min_range = 0.1  # D435i typical min range
-        range_msg.max_range = 10.0  # D435i typical max range
-        range_msg.range = float(median_depth)
+        # range_msg = Range()
+        # range_msg.header.stamp = self.latest_depth_image.header.stamp  # Use depth image timestamp
+        # range_msg.header.frame_id = self.latest_depth_image.header.frame_id  # Use depth image frame
+        # range_msg.radiation_type = Range.INFRARED  # Suitable for depth camera
+        # range_msg.field_of_view = 0.1  # Approximate for ROI or entire image
+        # range_msg.min_range = 0.1  # D435i typical min range
+        # range_msg.max_range = 10.0  # D435i typical max range
+        # range_msg.range = float(median_depth)
+        
+        msg = Range()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.range        = float(median_depth)
+        msg.field_of_view = 0.1  # approx
+        msg.min_range     = 0.1
+        msg.max_range     = 10.0
+        self.publisher.publish(msg)
         
         # Publish the message
-        self.publisher.publish(range_msg)
+        # self.publisher.publish(range_msg)
         self.get_logger().info(f"Published median depth ({depth_mode}): {median_depth} meters")
 
 def main(args=None):

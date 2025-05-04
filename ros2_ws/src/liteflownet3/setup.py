@@ -1,4 +1,5 @@
 from setuptools import find_packages, setup
+from glob import glob
 
 package_name = 'liteflownet3'
 
@@ -11,6 +12,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name, ['liteflownet3/network-sintel.pytorch']),
+                # Install launch files
+        ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,6 +28,7 @@ setup(
             'depth_calculation_node = liteflownet3.depth_calculation_node:main',
             'optical_flow_spike_viz = liteflownet3.optical_flow_spike_viz:main',
             'depth_subandpub_node = liteflownet3.depth_subandpub_node:main',
+            'lfn3_sub_node = liteflownet3.lfn3_sub_node:main',
         ],
     },
 )
