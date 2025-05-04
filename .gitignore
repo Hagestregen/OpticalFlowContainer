@@ -21,3 +21,12 @@ ros2_ws/cuda-keyring_1.0-1_all.deb
 ros2_ws/src/liteflownet3/liteflownet3/correlation_package/correlation_cuda.egg-info
 
 **/*.jpg
+
+*.db3
+*.csv
+*.png
+*.jpg
+*.avi
+*.mp4
+*.gif
+*.flo
