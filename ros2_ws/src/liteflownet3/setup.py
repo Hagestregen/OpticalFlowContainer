@@ -29,6 +29,8 @@ setup(
             'optical_flow_spike_viz = liteflownet3.optical_flow_spike_viz:main',
             'depth_subandpub_node = liteflownet3.depth_subandpub_node:main',
             'lfn3_sub_node = liteflownet3.lfn3_sub_node:main',
+            'lfn3_junction_node = liteflownet3.lfn3_junction_node:main',
+            'sub_n_pub_lfn3_node = liteflownet3.sub_n_pub_lfn3_node:main',
         ],
     },
 )

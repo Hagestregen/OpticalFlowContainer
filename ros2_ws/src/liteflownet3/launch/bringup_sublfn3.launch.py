@@ -12,18 +12,18 @@ def generate_launch_description():
 
     lfn3_node = launch_ros.actions.Node(
         package='liteflownet3',
-        executable='lfn3_node',
-        name='lfn3_node',
+        executable='lfn3_sub_node',
+        name='lfn3_sub_node',
         output='screen'
     )
     
     
-    depth_node = launch_ros.actions.Node(
-        package='liteflownet3',
-        executable='depth_calculation_node',
-        name='depth_calculation_node',
-        output='screen'
-    )
+    # depth_node = launch_ros.actions.Node(
+    #     package='liteflownet3',
+    #     executable='depth_calculation_node',
+    #     name='depth_calculation_node',
+    #     output='screen'
+    # )
 
     return LaunchDescription([
         lfn3_node,

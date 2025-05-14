@@ -3,7 +3,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Vector3Stamped
-from sensor_msgs.msg import Image, Range
+from sensor_msgs.msg import Image, Range, CameraInfo
 from cv_bridge import CvBridge
 import numpy as np
 import cv2
@@ -27,7 +27,18 @@ class PWCNetNode(Node):
         self.declare_parameter('width_depth', 640)
         self.declare_parameter('height_depth', 480)
         self.declare_parameter('fps', 30)
-        self.declare_parameter('pixel_to_meter', 0.000857)
+        self.declare_parameter('pixel_to_meter', 0.001100)
+        
+                # Declare display parameters
+        self.declare_parameter('show_live_feed', True)
+        self.declare_parameter('show_flow', True)
+        self.declare_parameter('show_mask', True)
+        
+        
+                # Publishers for visualization images
+        self.live_feed_pub = self.create_publisher(Image, '/optical_flow/image_live_feed', 10)
+        self.image_flow_pub = self.create_publisher(Image, '/optical_flow/image_flow', 10)
+        self.image_mask_pub = self.create_publisher(Image, '/optical_flow/image_mask', 10)
 
         # Retrieve parameter values
         self.width = self.get_parameter('width').value
@@ -37,30 +48,31 @@ class PWCNetNode(Node):
         self.fps = self.get_parameter('fps').value
         self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
         
-        self.writeCsv = False
+        self.writeCsv = True
+        self.focal_length_x = None
         
         if self.writeCsv:
             # Prepare CSV file for inference times
-            self.csv_filename = f"pwc_direct_inference_{self.width}x{self.height}.csv"
+            self.csv_filename = f"pwc_inference_{self.width}x{self.height}.csv"
             # Write header if new file
             if not os.path.isfile(self.csv_filename):
                 with open(self.csv_filename, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile)
                     writer.writerow(['timestamp', 'inference_time_s'])
 
-        # --- RealSense intrinsics only (no frame loop) ---
-        self.get_logger().info('Starting RealSense pipeline to read intrinsics…')
-        pipeline = rs.pipeline()
-        cfg = rs.config()
-        cfg.enable_stream(rs.stream.color, self.width, self.height, rs.format.rgb8, self.fps)
-        cfg.enable_stream(rs.stream.depth, self.width_depth, self.height_depth, rs.format.z16, self.fps)
-        profile = pipeline.start(cfg)
-        color_profile = profile.get_stream(rs.stream.color).as_video_stream_profile()
-        intr = color_profile.get_intrinsics()
-        self.focal_length_x = intr.fx
-        self.get_logger().info(f'RealSense fx = {self.focal_length_x:.2f} px')
-        pipeline.stop()
-        # ----------------------------------------------
+        # # --- RealSense intrinsics only (no frame loop) ---
+        # self.get_logger().info('Starting RealSense pipeline to read intrinsics…')
+        # pipeline = rs.pipeline()
+        # cfg = rs.config()
+        # cfg.enable_stream(rs.stream.color, self.width, self.height, rs.format.rgb8, self.fps)
+        # cfg.enable_stream(rs.stream.depth, self.width_depth, self.height_depth, rs.format.z16, self.fps)
+        # profile = pipeline.start(cfg)
+        # color_profile = profile.get_stream(rs.stream.color).as_video_stream_profile()
+        # intr = color_profile.get_intrinsics()
+        # self.focal_length_x = intr.fx
+        # self.get_logger().info(f'RealSense fx = {self.focal_length_x:.2f} px')
+        # pipeline.stop()
+        # # ----------------------------------------------
 
         # Publishers for raw and smoothed optical flow
         self.flow_pub = self.create_publisher(Vector3Stamped,
@@ -91,14 +103,16 @@ class PWCNetNode(Node):
         self.prev_time = None
         self.velocity_buffer = deque(maxlen=5)
 
-        # Depth subscription (Range message)
-        self.median_depth = None
-        self.sub_depth = self.create_subscription(
-            Range,
-            '/camera/depth/median_distance',
-            self.depth_callback,
-            10
-        )
+        # # Depth subscription (Range message)
+        # self.median_depth = None
+        # self.sub_depth = self.create_subscription(
+        #     Range,
+        #     '/camera/depth/median_distance',
+        #     self.depth_callback,
+        #     10
+        # )
+        
+        self.sub_camera_info = self.create_subscription(CameraInfo, '/camera/camera/color/camera_info', self.camera_info_callback, 10)
 
         # Image subscription (use width/height parameters)
         self.bridge = CvBridge()
@@ -120,6 +134,11 @@ class PWCNetNode(Node):
             self.get_logger().info(
                 f"Updated pixel_to_meter: {self.pixel_to_meter:.6f} m/px"
             )
+            
+    def camera_info_callback(self, msg: CameraInfo):
+        if self.focal_length_x is None:
+            self.focal_length_x = msg.k[0]  # fx is the first element in the K matrix
+            self.get_logger().info(f"Received focal length fx = {self.focal_length_x:.2f} px")
 
     def image_callback(self, msg: Image):
         # Compute flow via PWC-Net's estimate()

@@ -10,24 +10,31 @@ def generate_launch_description():
 
     
 
-    lfn3_node = launch_ros.actions.Node(
-        package='liteflownet3',
-        executable='lfn3_node',
-        name='lfn3_node',
+    pwc_node = launch_ros.actions.Node(
+        package='pwc_net',
+        executable='sub_n_pub_pwc_junction_node',
+        name='sub_n_pub_pwc_junction_node',
         output='screen'
     )
     
     
     depth_node = launch_ros.actions.Node(
         package='liteflownet3',
-        executable='depth_calculation_node',
-        name='depth_calculation_node',
+        executable='depth_subandpub_node',
+        name='depth_subandpub_node',
         output='screen'
     )
 
+    junction_node = launch_ros.actions.Node(
+        package='junction_point_detector',
+        executable='junction_point_detector_node',
+        name='junction_point_detector_node',
+        output='screen'
+    )
     return LaunchDescription([
-        lfn3_node,
+        pwc_node,
         # depth_node,
+        junction_node
     ])
     
     
