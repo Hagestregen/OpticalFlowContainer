@@ -23,7 +23,7 @@ from .liteflownet3 import Network
 
 class OpticalFlowDirectNode(Node):
     def __init__(self):
-        super().__init__('optical_flow_direct_node')
+        super().__init__('lfn3_sub_node')
         
         # Declare parameters
         self.declare_parameter('width', 640)
@@ -31,7 +31,7 @@ class OpticalFlowDirectNode(Node):
         self.declare_parameter('width_depth', 640)
         self.declare_parameter('height_depth', 480)
         self.declare_parameter('fps', 30)
-        self.declare_parameter('pixel_to_meter', 0.001100)  # default for 640x480
+        self.declare_parameter('pixel_to_meter', 0.001100)  # placeholder gets updated in callback
         
         # Retrieve parameter values
         self.width = self.get_parameter('width').value
@@ -42,7 +42,7 @@ class OpticalFlowDirectNode(Node):
         self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
         
         
-        self.writeCsv = True
+        self.writeCsv = False
         self.focal_length_x = None
         
         if self.writeCsv:
@@ -80,6 +80,7 @@ class OpticalFlowDirectNode(Node):
         # Initialize LiteFlowNet3 model
         self.get_logger().info('Initializing LiteFlowNet3 model...')
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.get_logger().info(f"Using device: {self.device}")
         self.net = Network().to(self.device).eval()
         
         # Load weights
@@ -99,8 +100,8 @@ class OpticalFlowDirectNode(Node):
         
         # Depth subscription (for pixel_to_meter update)
         self.median_depth = None
-        self.declare_parameter('camera_info_focal_x', self.focal_length_x)
-        self.focal_length_x = self.get_parameter('camera_info_focal_x').value
+        # self.declare_parameter('camera_info_focal_x', self.focal_length_x)
+        # self.focal_length_x = self.get_parameter('camera_info_focal_x').value
         self.sub_depth = self.create_subscription(
             Range, '/camera/depth/median_distance',
             self.depth_callback, 10)
@@ -191,8 +192,8 @@ class OpticalFlowDirectNode(Node):
             
             # average horizontal flow
             flow_np = flow[0].cpu().numpy()
-            # u_avg = np.mean(flow_np[0]) / dt
-            u_avg = np.median(flow_np[0]) / dt
+            u_avg = np.mean(flow_np[0]) / dt
+            # u_avg = np.median(flow_np[0]) / dt
             vx = float(u_avg * self.pixel_to_meter)
             
             # smoothing
@@ -234,7 +235,7 @@ def main(args=None):
     except KeyboardInterrupt:
         node.get_logger().info('Shutting down optical_flow_direct_node')
     finally:
-        node.pipeline.stop()
+        # node.pipeline.stop()
         node.destroy_node()
         rclpy.shutdown()
 

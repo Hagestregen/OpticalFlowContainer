@@ -26,7 +26,7 @@ from .liteflownet3 import Network
 
 class OpticalFlowDirectNode(Node):
     def __init__(self):
-        super().__init__('optical_flow_direct_node')
+        super().__init__('optical_direct_junction_node')
         
         # --- parameters ---
         self.declare_parameter('width', 640)

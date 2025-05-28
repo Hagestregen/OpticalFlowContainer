@@ -20,7 +20,7 @@ from .pwc_net import Network  # network with estimate() method
 
 class PWCNetNode(Node):
     def __init__(self):
-        super().__init__('pwc_net_node')
+        super().__init__('pwc_net_sub_node')
         # Declare parameters for image resolution, frame rate, and scaling
         self.declare_parameter('width', 640)
         self.declare_parameter('height', 480)
@@ -48,7 +48,7 @@ class PWCNetNode(Node):
         self.fps = self.get_parameter('fps').value
         self.pixel_to_meter = self.get_parameter('pixel_to_meter').value
         
-        self.writeCsv = True
+        self.writeCsv = False
         self.focal_length_x = None
         
         if self.writeCsv:
@@ -103,14 +103,14 @@ class PWCNetNode(Node):
         self.prev_time = None
         self.velocity_buffer = deque(maxlen=5)
 
-        # # Depth subscription (Range message)
-        # self.median_depth = None
-        # self.sub_depth = self.create_subscription(
-        #     Range,
-        #     '/camera/depth/median_distance',
-        #     self.depth_callback,
-        #     10
-        # )
+        # Depth subscription (Range message)
+        self.median_depth = None
+        self.sub_depth = self.create_subscription(
+            Range,
+            '/camera/depth/median_distance',
+            self.depth_callback,
+            10
+        )
         
         self.sub_camera_info = self.create_subscription(CameraInfo, '/camera/camera/color/camera_info', self.camera_info_callback, 10)
 

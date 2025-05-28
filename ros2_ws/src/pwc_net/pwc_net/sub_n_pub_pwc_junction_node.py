@@ -20,7 +20,7 @@ from .pwc_net import Network
 
 class PWCNetNode(Node):
     def __init__(self):
-        super().__init__('pwc_net_node')
+        super().__init__('pwc_net_junction_node')
         # Declare parameters
         self.declare_parameter('width', 640)
         self.declare_parameter('height', 480)

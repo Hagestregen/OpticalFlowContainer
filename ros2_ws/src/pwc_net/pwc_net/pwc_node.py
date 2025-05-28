@@ -20,7 +20,7 @@ from .pwc_net import Network  # This module now contains both the network defini
 
 class PWCNetNode(Node):
     def __init__(self):
-        super().__init__('pwc_net_node')
+        super().__init__('pwc_net_direct_node')
         # Declare and retrieve parameters
         self.declare_parameter('width', 640)
         self.declare_parameter('height', 480)
