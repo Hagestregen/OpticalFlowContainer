@@ -150,7 +150,8 @@ class PWCNetNode(Node):
                     # tenFlow has shape (2, H, W) on CPU
                     flow_np = tenFlow.numpy()  # Convert to NumPy array
                     # Compute average horizontal flow (pixels/sec) and convert to m/s
-                    u_avg = np.mean(flow_np[0]) / dt
+                    # u_avg = np.mean(flow_np[0]) / dt
+                    u_avg = np.median(flow_np[0]) / dt
                     vx_m_per_s = float(u_avg * self.pixel_to_meter)
                     self.velocity_buffer.append(vx_m_per_s)
                     smoothed_vx = float(np.mean(self.velocity_buffer))

@@ -31,6 +31,7 @@ setup(
             'lfn3_sub_node = liteflownet3.lfn3_sub_node:main',
             'lfn3_junction_node = liteflownet3.lfn3_junction_node:main',
             'sub_n_pub_lfn3_node = liteflownet3.sub_n_pub_lfn3_node:main',
+            'lfn3_adapt_node = liteflownet3.lfn3_adapt_node:main',
         ],
     },
 )
